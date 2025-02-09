@@ -4,15 +4,16 @@
 
 \input{preamble.tex}
 
-% То, что в квадратных скобках, отображается внизу по центру каждого слайда. 
-\title[Короткое название]{Полный официальный заголовок квалификационной работы}
+% То, что в квадратных скобках, отображается внизу по центру каждого слайда.
+\title[Tokio global queue]{Оптимизация алгоритмов injected queue в
+рантайме Tokio}
 
-% То, что в квадратных скобках, отображается в левом нижнем углу. 
+% То, что в квадратных скобках, отображается в левом нижнем углу.
 \institute[СПбГУ]{}
 
 % То, что в квадратных скобках, отображается в левом нижнем углу.
-\author[Василий Пупкин]{Василий Иванович Пупкин, группа ХХ.БХХ-мм}
- 
+\author[Игорь Ерин]{Игорь Антонович Ерин, группа 21.Б10-мм}
+
 \begin{document}
 {
 \setbeamertemplate{footline}{}
@@ -33,246 +34,215 @@
 
 {\scriptsize
   % У научного руководителя должна быть указана научная степень
-   \textbf{Научный руководитель:} к.ф.-м.н. А.А. Андреев, доцент кафедры системного программирования \\
+   \textbf{Научный руководитель:} к.ф.-м.н. В. И. Гориховский, доцент кафедры системного программирования \\
   % Консультанта может и не быть. Должна быть указана должность или ученая степень
-   \textbf{Консультант:}  П.П. Петров, программист ЗАО \enquote{Компания с ну очень-очень-очень длинным названием}\\
+   \textbf{Консультант:}  Р. С. Ефремов, программист ЗАО \enquote{Эксперт по разработке ПО, ООО ``Ядро Центр Программных Разработок''}\\
   % Для курсовой не обязателен. Должна быть указана должность или ученая степень
-   \textbf{Рецензент:} д.т.н., проф. И.И. Иванов, исполнительный директор ООО \enquote{Рога и копыта}  
+  %  \textbf{Рецензент:} д.т.н., проф. И.И. Иванов, исполнительный директор ООО \enquote{Рога и копыта}
  }
 \begin{center}
   \vspace{5pt}
   \scriptsize{Санкт-Петербург\\
-                 2023}
+                 2025}
   \end{center}
 
 \end{frame}
 }
 
-\begin{frame}[fragile]  
+\begin{frame}[fragile]
   \frametitle{Введение}
   \begin{itemize}
-    \item Краткий обзор тематики работы (как вариант~--- устно, пока показывается титульный слайд)
-    \item Не нужно определять общеизвестные понятия
-    \item Применимость/полезность данной работы, обоснование выбора именно этой темы 
-    \item Если тема похожа на темы других работ (в том числе прошлых лет), надо явно описать разницу
-  \end{itemize}
-\end{frame}
-            
-\begin{frame}  
-  \frametitle{Существующие решения (инструменты, подходы, алгоритмы)}
-  \begin{itemize}
-    \item Перечислить инструменты/подходы, применяемые в области
-    \item Указать их преимущества и недостатки (критика существующих решений/подходов)    
-  \end{itemize}
-    
-\end{frame}
-
-\begin{frame}  
-  \frametitle{Существующие решения}
-  Возможно, предметная область сложна и потребуется больше одного слайда, но затягивать введение не стоит. Постарайтесь уложиться в 1--2 слайда
-  \begin{itemize}
-    \item Выводы
+    \item \verb|TATLIN.BACKUP|\footnote{\href{https://yadro.com/ru/tatlin/backup}{TATLIN.BACKUP} --- официальный сайт проекта (Дата обращения: 4.1.2025)} --- системы бекапов на \verb|Rust|
+    \item Rust --- язык программирования общего назначения
     \begin{itemize}
-      \item Подвести итог
-      \item Указать недостатки существующих подходов, на борьбу с которыми 
-направленна данная работа
-      \item Чётко сформулировать существующую проблему, которая будет решаться в данной работе
+      \item \verb|async| / \verb|await| интерфейс
+      \item не фиксирует реализацию асинхронного рантайма
+    \end{itemize}
+    \item \verb|tokio|\footnote{\href{https://tokio.rs/}{tokio} --- официальный сайт проекта (Дата обращения: 4.1.2025)} --- проект используемый в \verb|TATLIN.BACKUP|
+    \begin{itemize}
+      \item рантаймы --- \verb|current_thread|, \verb|multi_thread|
+      \item стандартную библиотеку языка с асинхронным интерфейсом
+      \item примитивы синхронизации
+      \item коллекции
+      \item таймеры
+      \item профилировщики
     \end{itemize}
   \end{itemize}
 \end{frame}
 
+\begin{frame}
+  \frametitle{Tokio}
 
-% Обязательный слайд: четкая формулировка цели данной работы и постановка задачи
-% Описание выносимых на защиту результатов, процесса или особенностей их достижения и т.д.
+\begin{figure}[H]
+    \begin{center}
+        \makebox[\textwidth]{\includegraphics[scale=0.35]{pictures/tokio.arch.png}}
+    \end{center}
+
+    \caption{Упрощенное представление многопоточного рантайма}
+    \label{fig:tokio:arch}
+\end{figure}
+
+\end{frame}
+
 \begin{frame}
   \frametitle{Постановка задачи}
-  \textbf{Целью} работы является решение какой-то проблемы %озвученной выше  
+  \textbf{Целью} работы является проверка и решение проблемы глобальной очереди
 
   \textbf{Задачи}:
   \begin{itemize}
-    \item Выбрать алгоритм, подход, метод %основываясь на проведённом анализе проблемы, области, существующих решений
-    \item Разработать алгоритм, делающий то-то с тем-то
-    \item Доказать корректность алгоритма
-    \item Реализовать предложенный алгоритм
-    \item Провести экспериментальное исследование предложенной реализации 
+    \item Произвести обзор и выработку метрик
+    \item Создать воспроизводимую систему бенчмарков
+    \item Произвести анализ собранных метрик
+    \item Спроектировать решение
+    \item Прототипировать и анализировать полученные решения
+    \item Интегрировать решение.
   \end{itemize}
 \end{frame}
-            
-%Идеально, если есть по одному слайду на каждую поставленную задачу            
 
 \begin{frame}
-  \frametitle{Алгоритм ABC\footnote{Результаты и обоснования выбора пути достижения цели}}
-  За основу решения взят алгоритм ABC
+\frametitle{Метрики}
   \begin{itemize}
-    \item Почему именно он, а не другие
-    \item Ключевые особенности выбранного алгоритма, важные для решения поставленных задач    
+    \item Семплирование
+    \begin{itemize}
+      \item tokio-metrics\footnote{\href{https://github.com/tokio-rs/tokio-metrics}{Репозиторий} проекта tokio-metrics (Дата обращения: 4.1.2025)}
+    \end{itemize}
+    \item Тотальная оценка
+    \item Выработка
+    \begin{itemize}
+      \item global\_queue\_depth
+      \item total\_overflow\_count
+      \item total\_local\_queue\_depth
+      \item num\_remote\_schedules
+      \item total\_steal\_operations
+      \item num\_alive\_tasks
+      \item poll\_time\_histogram\_bucket\_range
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Система бенчмарков}
+  \begin{itemize}
+    \item \verb|tokiobench|\footnote{\href{https://github.com/IgorErin/tokiobench}{Репозиторий} проект tokiobench (Дата обращения: 4.1.2025)} --- проект с бенчмарками
+    \begin{itemize}
+    \item Сценарии интересные потребителю
+    \item Сбор метрик
+    \item Визуализация
+    \end{itemize}
+    \item Поиск сценария
+    \begin{itemize}
+      \item Репозиторий tokio
+      \item Обсуждение с потребителями
+    \end{itemize}
+    \item Проблема синхронизации
+    \begin{itemize}
+      \item Атомарные бенчмарки в tokio
+      \item \verb|block_on|
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
 
 \begin{frame}[fragile]
-\frametitle{Новый алгоритм\footnote{Иллюстративные возможности: таблицы, картинки, код}}
-% Задается ширина столбцов
-\begin{tabular}{p{5cm} p{7cm}}
-% Фрагмент кода
-\begin{minipage}{3in}
-  \begin{Verbatim}[commandchars=\\\{\}]
+  \frametitle{Проблема синхронизации 1}
+    \begin{minted}{rust}
+for _ in 0..NUM_SPAWN {
+    handles.push(rt.spawn(async {}));
+}
+rt.block_on(async {
+    for handle in handles.drain(..) {
+        handle.await.unwrap();
+    }
+});
+    \end{minted}
 
-\textcolor{blue}{string} res = \textcolor{orange}{""};
-\textcolor{blue}{for}(i = 0; i < l; i++) \{
-    res = \textcolor{orange}{"()"} + res;
-\}   
-
-  \end{Verbatim}
-\end{minipage}
-&
-Результат (SPPF):
-\\
-Аппроксимация: 
-&
-% Картинка. Изображения должны быть векторными. Исключения --- снимки экрана.
-\multirow{-2}*{\!\includegraphics[width=6.8cm]{pictures/out3.pdf}}
-\\
-\includegraphics[width=2.5cm]{pictures/in3.pdf}
-&
-\\      
-Грамматика: &
-\\
-\vspace{-20pt}
-% Можно формулы писать
-{\begin{align*}
-  start& & &\Coloneq & &s \\
-  s & & &\Coloneq & &\mbox{\texttt{LBR }} s \mbox{\texttt{ RBR }} s \\
-  s & & &\Coloneq & &\epsilon
-\end{align*}}
-& 
-\end{tabular}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Доказательство корректности алгоритма}
-  {\tiny Формулировки утверждений. Идеи доказательств проговариваются устно.}
-  \begin{rutheorem}[Пифагора: геометрическая формулировка]
-    В прямоугольном треугольнике площадь квадрата, построенного на гипотенузе, равна сумме площадей квадратов, построенных на катетах.
-  \end{rutheorem}
-
-  \begin{rutheorem}[Пифагора: алгебраическая формулировка]
-    В прямоугольном треугольнике квадрат длины гипотенузы равен сумме квадратов длин катетов.    
-
-    То есть, если обозначить длину гипотенузы треугольника через $c$, а длины катетов 
-через $a$ и $b$, получим верное равенство: $a^2 + b^2 = c^2$.
-  \end{rutheorem}
-
-  \begin{rutheorem}[Обратная теорема Пифагора]
-    Для всякой тройки положительных чисел $a$, $b$ и $c$, такой, что $a^2 + b^2 = c^2$, существует прямоугольный треугольник с катетами $a$ и $b$ и гипотенузой $c$.
-  \end{rutheorem}  
+  \frametitle{Проблема синхронизации 2}
+    \begin{minted}{rust}
+let (tx, rx) = mpsc::sync_channel(1000);
+let rem = Arc::new(AtomicUsize::new(NUM_SPAWN));
+rt.block_on(async {
+    for _ in 0..NUM_SPAWN {
+        let tx = tx.clone();
+        let rem = rem.clone();
+        tokio::spawn(async move {
+            if 1 == rem.fetch_sub(1, Relaxed) {
+                tx.send(()); // send signal
+            }
+        });
+    }
+    rx.recv(); // block benchmark thread until signal
+});
+    \end{minted}
 \end{frame}
+
 
 \begin{frame}[fragile]
-  \frametitle{Архитектура решения}
-  \begin{itemize}
-    \item В реализации интересны архитектура, библиотеки, инструменты
-    \item Не надо добавлять на слайд примеры кода
-  \end{itemize}
-  \begin{center}
-  \includegraphics[width=0.8\textwidth]{pictures/Activ_SEL_Processing.pdf}
-  \end{center}
-\end{frame}
-
-\begin{frame}[t]
   \frametitle{Экспериментальное исследование}
   Постановка эксперимента
   \begin{itemize}
-    \item На каком наборе данных проводилось экспериментальное исследование, почему были выбраны именно эти данные    
-    \item На каком оборудовании проводилось исследование    
-    \item Какие решения были выбраны для сравнения и почему
-  \end{itemize}  
-\end{frame}
-
-\begin{frame}[t]
-  \frametitle{Результаты экспериментального исследования}
-  \begin{itemize}  
-    \item Какие результаты показало экспериментальное исследование
-    \item Желательно привести графики, иллюстрирующие полученные результаты
+    \item criterion --- бенчмарк фреимворк
+    \item Спавнер
     \begin{itemize}
-      \item У иллюстраций должны быть подписи, у графиков~--- легенда, подписи к осям, например:
+      \item Создатель большого количества задач
+      \item В блокирующем потоке
     \end{itemize}
+    \item Листовые задачи
+    \begin{itemize}
+      \item Пустые асинхронные замыкания
+      \item Непрозрачные для компилятор
+    \end{itemize}
+    \item Система
+    \begin{itemize}
+      \item YADRO VEGMAN Rx20 G2\footnote{\href{https://yadro.com/ru/vegman/rx20g2/specs}{Официальные} характеристики системы}
+    \end{itemize}
+    \item Среднее отклонение не привысило 3 процентов
   \end{itemize}
-  \includegraphics[width=10cm]{pictures/dist.png}
 \end{frame}
 
+\begin{frame}[fragile]
+  \frametitle{Пропусная способность 1}
 
-\begin{frame}
+  \begin{center}
+    \makebox[\textwidth]{\includegraphics[scale=0.60]{pictures/tatlin_blocking.png}}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Пропусная способность 2}
+
+  \begin{center}
+    \makebox[\textwidth]{\includegraphics[scale=0.60]{pictures/tatlin_blocking_from_8.png}}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Пропусная способность}
+
+  \begin{center}
+    \makebox[\textwidth]{\includegraphics[scale=0.35]{pictures/steal_worker.png}}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
   \frametitle{Результаты}
   \begin{itemize}
-    \item Практически то же, что и на слайде с постановкой задачи, но в совершенной форме~--- что делал лично автор
-    \item Четкое отделение результатов своей работы (особенно для коллективных работ)
-      \item Формулировать глаголами совершенного вида в прошедшем времени (\enquote{сделано}, \enquote{получено})
-    \item Обсуждение (ограничения, валидность, альтернативы)
-    \item Не нужно слайдов типа \enquote{Все}, \enquote{Вопросы?}, \enquote{Спасибо за внимание}
-  \end{itemize}
-
-  \begin{itemize}
-    \item Если результаты были представлены на конференции и опубликованы, это желательно указать 
+    \item Произведен обзор метрик
+    \begin{itemize}
+      \item Выбраны основные
+    \end{itemize}
+    \item Создана система бенчмарков \verb|tokiobench|\footnote{\href{https://github.com/IgorErin/tokiobench}{Репозиторий} проекта tokiobench (Дата обращения: 4.1.2025)}
+    \item Произведен анализ полученные результатов
+    \item Проектирование
+    \begin{itemize}
+      \item Не найдены изменения в Go рантайме
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
 %\addtocounter{framenumber}{1}
 \appendix
-
-\begin{frame}
-  \frametitle{Дополнительный слайд}
-  Например, с огромной страшной формулой всего, которая нужна для пояснения деталей при ответе на частый вопрос
-  
-\begin{align*}
-  \MoveEqLeft \lim_{\bigtriangleup t \to 0^+}\int_{\bigtriangleup t}^{T} \! \int_{\Omega} \! D(t_1,x) \frac{\varphi(t_1-\bigtriangleup t,x)-\varphi(t_1,x)}{(-\bigtriangleup t)} \, \mathrm{d}x \, \mathrm{d}t_1 \\
-  &= \lim_{\bigtriangleup t \to 0^+} \int_{0}^{T} \! \int_{\Omega} \! D(t_1,x) \frac{\varphi(t_1-\bigtriangleup t,x)-\varphi(t_1,x)}{(-\bigtriangleup t)} \chi_{(\bigtriangleup t,T)}(t_1) \, \mathrm{d}x \, \mathrm{d}t_1 \\
-  &=\int_{0}^{T} \! \int_{\Omega} \! D(t_1,x) \frac{\partial \varphi}{\partial t_1} (t_1,x) \, \mathrm{d}x \, \mathrm{d}t_1 .
-\end{align*}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Второй дополнительный слайд}
-\begin{itemize}
-  \item Много дополнительных слайдов не надо: 1--2 вполне достаточно в большинстве случаев
-  \item Кроме формул здесь могут быть схемы, рисунки, таблицы и другие вспомогательные материалы
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}
-  \frametitle{Анимация}
-  Чаще всего анимированные слайды не требуются, но если очень надо, возможность добавить анимацию в PDF есть.
-  Используйте анимацию на слайдах с умом и только в случае необходимости (см. комментарий в исходном тексте)
-  % !!! ВНИМАНИЕ !!!
-  % Для воспроизведения анимированных иллюстраций необходимо использовать просмотрщик PDF, поддерживающий исполнение скриптов, например
-  % - Adobe Acrobat Reader
-  % - Okular
-  %
-  % Проблема в том, что многие популярные просмотрщики это делать не умеют, например
-  % - Evince
-  % - Web-браузеры
-  %
-  % Часто показывать презентацию вы будете не со своего компьютера, на котором может не быть подходлящего просмотрщика.
-  % Поэтому пользуйтесь анимацией на свой страх и риск!!!
-  %
-  % Полезные материалы
-  % - https://tug.ctan.org/macros/latex/contrib/animate/animate.pdf — документация к пакету animate
-  % - https://texblog.org/2018/03/05/the-animate-package/ — коротенький гайд для минимального примера
-
-  \setlength{\fboxsep}{0pt}
-  \setlength{\fboxrule}{0.5pt}
-  \begin{figure}[h]
-    \begin{minipage}{0.45\textwidth}
-        \centering
-        \fbox{\animategraphics[autoplay, loop, scale=0.3]{7}{pictures/sensors/sensors-}{1}{26}}
-    \end{minipage}
-    \begin{minipage}{0.45\textwidth}
-        \centering
-        \fbox{\animategraphics[autoplay, loop, scale=0.3]{7}{pictures/encoders/encoders-}{1}{24}}
-    \end{minipage}
-    \caption{Сенсоры и энкодеры}
-  \end{figure}
-\end{frame}
 
 \end{document}
