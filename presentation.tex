@@ -106,16 +106,12 @@
     \begin{itemize}
       \item tokio-metrics\footnote{\href{https://github.com/tokio-rs/tokio-metrics}{Репозиторий} проекта tokio-metrics (Дата обращения: 4.1.2025)}
     \end{itemize}
-    \item Тотальная оценка
     \item Выработка
     \begin{itemize}
       \item global\_queue\_depth
       \item total\_overflow\_count
       \item total\_local\_queue\_depth
-      \item num\_remote\_schedules
-      \item total\_steal\_operations
-      \item num\_alive\_tasks
-      \item poll\_time\_histogram\_bucket\_range
+      \item \dots
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -142,43 +138,6 @@
   \end{itemize}
 \end{frame}
 
-
-\begin{frame}[fragile]
-  \frametitle{Проблема синхронизации 1}
-    \begin{minted}{rust}
-for _ in 0..NUM_SPAWN {
-    handles.push(rt.spawn(async {}));
-}
-rt.block_on(async {
-    for handle in handles.drain(..) {
-        handle.await.unwrap();
-    }
-});
-    \end{minted}
-
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Проблема синхронизации 2}
-    \begin{minted}{rust}
-let (tx, rx) = mpsc::sync_channel(1000);
-let rem = Arc::new(AtomicUsize::new(NUM_SPAWN));
-rt.block_on(async {
-    for _ in 0..NUM_SPAWN {
-        let tx = tx.clone();
-        let rem = rem.clone();
-        tokio::spawn(async move {
-            if 1 == rem.fetch_sub(1, Relaxed) {
-                tx.send(()); // send signal
-            }
-        });
-    }
-    rx.recv(); // block benchmark thread until signal
-});
-    \end{minted}
-\end{frame}
-
-
 \begin{frame}[fragile]
   \frametitle{Экспериментальное исследование}
   Постановка эксперимента
@@ -203,46 +162,43 @@ rt.block_on(async {
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Пропусная способность 1}
+  \frametitle{Пропусная способность нескольких рантаймов}
 
   \begin{center}
-    \makebox[\textwidth]{\includegraphics[scale=0.60]{pictures/tatlin_blocking.png}}
+    \makebox[\textwidth]{\includegraphics[scale=0.32]{pictures/multi_rt_eval.png}}
   \end{center}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Пропусная способность 2}
+  \frametitle{Предлагаемое решение}
 
   \begin{center}
-    \makebox[\textwidth]{\includegraphics[scale=0.60]{pictures/tatlin_blocking_from_8.png}}
+    \makebox[\textwidth]{\includegraphics[scale=0.30]{pictures/tokio_duplicated.png}}
   \end{center}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Пропусная способность}
+  \frametitle{Пропусная способность решения}
 
-  \begin{center}
-    \makebox[\textwidth]{\includegraphics[scale=0.35]{pictures/steal_worker.png}}
-  \end{center}
+  % \begin{center}
+  %   \makebox[\textwidth]{\includegraphics[scale=0.60]{pictures/tatlin_blocking_from_8.png}}
+  % \end{center}
 \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Результаты}
   \begin{itemize}
     \item Произведен обзор метрик
-    \begin{itemize}
-      \item Выбраны основные
-    \end{itemize}
     \item Создана система бенчмарков \verb|tokiobench|\footnote{\href{https://github.com/IgorErin/tokiobench}{Репозиторий} проекта tokiobench (Дата обращения: 4.1.2025)}
     \item Произведен анализ полученные результатов
     \item Проектирование
     \begin{itemize}
-      \item Не найдены изменения в Go рантайме
+      \item TODO()
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 %\addtocounter{framenumber}{1}
-\appendix
+% \appendix
 
 \end{document}
